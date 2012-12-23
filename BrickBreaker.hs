@@ -23,13 +23,12 @@ data Paddle          = Paddle !Int !Int !Int
 data GameState       = GS [Particle] Block
 type CollisionResult = Maybe (Pixel, Block)
 type Position        = (Int, Int)
-type Block           = M.Map Position Particle
+type Block           = M.Map Position Pixel
 
 genBlock :: Block
-genBlock = mkMap $ zipWith ($) ptCtors pixels
-    where ptCtors = [Particle w h 0 0 | w <- [0..blockW], h <- [0..blockH]]
-          pixels  = [Pixel pix | pix <- [0,2800..]]
-          mkMap   = M.fromAscList . map (\pt@(Particle x y _ _ _) -> ((x, y), pt))
+genBlock = M.fromAscList $ zip pos pixels
+    where pos    = [(w, h) | w <- [0..blockW], h <- [0..blockH]]
+          pixels = [Pixel pix | pix <- [0,2800..]]
 
 approach :: Particle -> Block -> Maybe Position
 approach (Particle x y dx dy _) bs = find (`M.member` bs) path
@@ -41,7 +40,7 @@ collisionBlock :: Particle -> Block -> CollisionResult
 collisionBlock pt@(Particle _ y _ dy _) bs
     | dy > 0 && y > blockH      = Nothing
     | dy < 0 && y > blockH - dy = Nothing
-    | otherwise = (first (pixel . fromJust) . searchRemove) `fmap` approach pt bs
+    | otherwise = (first fromJust . searchRemove) `fmap` approach pt bs
     where searchRemove = flip (M.updateLookupWithKey (\_ _ -> Nothing)) bs
 
 collisionPaddle :: Paddle -> Particle -> Bool
