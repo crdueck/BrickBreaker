@@ -18,8 +18,8 @@ blockW = width
 blockH = height `quot` 3
 secsPerFrame = 1000 `quot` fps
 
-data Particle        = Particle { partX, partY, partDX, partDY :: !Int, pixel :: !Pixel }
-data Paddle          = Paddle !Int !Int !Int
+data Particle        = Particle { partX, partY, partDX, partDY :: {-# UNPACK #-} !Int, pixel :: {-# UNPACK #-} !Pixel }
+data Paddle          = Paddle {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Int
 data GameState       = GS [Particle] Block
 type CollisionResult = Maybe (Pixel, Block)
 type Position        = (Int, Int)
@@ -54,7 +54,7 @@ checkCollisions pd (GS ps bs) = foldr go (GS [] bs) ps
             | otherwise =
                 case collisionBlock pt bs of
                      Just (pix', bs') -> GS (blk:randomParticle pt pix':ps) bs'
-                     Nothing         -> GS (pt:ps) bs
+                     Nothing          -> GS (pt:ps) bs
             where bar = Particle x (min y height) dx (-dy) pix
                   blk = Particle x y dx (abs dy) pix
 
