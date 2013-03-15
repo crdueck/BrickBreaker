@@ -25,13 +25,7 @@ type Position        = (Int, Int)
 type Block           = M.Map Position Pixel
 
 genBlock :: Block
-<<<<<<< HEAD
 genBlock = M.fromAscList $ zip [(w, h) | w <- [0..blockW], h <- [0..blockH]] [Pixel pix | pix <- [0,2800..]]
-=======
-genBlock = M.fromAscList $ zip pos pixels
-    where pos    = [(w, h) | w <- [0..blockW], h <- [0..blockH]]
-          pixels = [Pixel pix | pix <- [0,2800..]]
->>>>>>> c6818df20ca814b5521394998d28b3a7cbc5934f
 
 approach :: Particle -> Block -> Maybe Position
 approach (Particle x y dx dy _) bs = find (`M.member` bs) path
@@ -54,14 +48,8 @@ checkCollisions :: Paddle -> GameState -> GameState
 checkCollisions pd (GS ps bs) = foldr go (GS [] bs) ps
     where go pt@(Particle x y dx dy pix) (GS ps bs)
             | collisionPaddle pd pt = GS (bar:ps) bs
-<<<<<<< HEAD
             | otherwise = case collisionBlock pt bs of
                      Just (pix', bs') -> GS (blk:randomParticle (x,y) pix':ps) bs'
-=======
-            | otherwise =
-                case collisionBlock pt bs of
-                     Just (pix', bs') -> GS (blk:randomParticle pt pix':ps) bs'
->>>>>>> c6818df20ca814b5521394998d28b3a7cbc5934f
                      Nothing          -> GS (pt:ps) bs
             where bar = Particle x (min y height) dx (-dy) pix
                   blk = Particle x y dx (abs dy) pix
