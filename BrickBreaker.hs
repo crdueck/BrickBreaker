@@ -21,15 +21,11 @@ secsPerFrame = 1000 `quot` fps
 data Particle        = Particle { partX, partY, partDX, partDY :: !Int, pixel :: !Pixel }
 data Paddle          = Paddle !Int !Int !Int
 data GameState       = GS [Particle] Block
-type CollisionResult = Maybe (Pixel, Block)
 type Position        = (Int, Int)
-type Block           = M.Map Position Particle
+type Block           = M.Map Position Pixel
 
 genBlock :: Block
-genBlock = mkMap $ zipWith ($) ptCtors pixels
-    where ptCtors = [Particle w h 0 0 | w <- [0..blockW], h <- [0..blockH]]
-          pixels  = [Pixel pix | pix <- [0,2800..]]
-          mkMap   = M.fromAscList . map (\pt@(Particle x y _ _ _) -> ((x, y), pt))
+genBlock = M.fromAscList $ zip [(w, h) | w <- [0..blockW], h <- [0..blockH]] [Pixel pix | pix <- [0,2800..]]
 
 approach :: Particle -> Block -> Maybe Position
 approach (Particle x y dx dy _) bs = find (`M.member` bs) path
@@ -37,11 +33,11 @@ approach (Particle x y dx dy _) bs = find (`M.member` bs) path
           enum n = let i = signum n in enumFromThenTo i (i+i) n
           path   = [(x + dx', y + dy') | (dx', dy') <- zip (enum dx) (enum dy)]
 
-collisionBlock :: Particle -> Block -> CollisionResult
+collisionBlock :: Particle -> Block -> Maybe (Pixel, Block)
 collisionBlock pt@(Particle _ y _ dy _) bs
     | dy > 0 && y > blockH      = Nothing
     | dy < 0 && y > blockH - dy = Nothing
-    | otherwise = (first (pixel . fromJust) . searchRemove) `fmap` approach pt bs
+    | otherwise = (first fromJust . searchRemove) `fmap` approach pt bs
     where searchRemove = flip (M.updateLookupWithKey (\_ _ -> Nothing)) bs
 
 collisionPaddle :: Paddle -> Particle -> Bool
@@ -52,17 +48,16 @@ checkCollisions :: Paddle -> GameState -> GameState
 checkCollisions pd (GS ps bs) = foldr go (GS [] bs) ps
     where go pt@(Particle x y dx dy pix) (GS ps bs)
             | collisionPaddle pd pt = GS (bar:ps) bs
-            | otherwise =
-                case collisionBlock pt bs of
-                     Just (pix', bs') -> GS (blk:randomParticle pt pix':ps) bs'
-                     Nothing         -> GS (pt:ps) bs
+            | otherwise = case collisionBlock pt bs of
+                     Just (pix', bs') -> GS (blk:randomParticle (x,y) pix':ps) bs'
+                     Nothing          -> GS (pt:ps) bs
             where bar = Particle x (min y height) dx (-dy) pix
                   blk = Particle x y dx (abs dy) pix
 
-randomParticle :: Particle -> Pixel -> Particle
-randomParticle (Particle x y _ _ _) = Particle x y (ceiling $ dx * 10) (ceiling $ dy * 9 + 1)
-    where (dx, g) = randomR (-1.0, 1.0) (mkStdGen $ x + y) :: (Double, StdGen)
-          (dy, _) = randomR (0.1, 1.0) g :: (Double, StdGen)
+randomParticle :: Position -> Pixel -> Particle
+randomParticle (x, y) = Particle x y (ceiling $ dx * 10) (ceiling $ dy * 9 + 1)
+    where (dx, g) = randomR (-1.0, 1.0) (mkStdGen $ x + y) :: (Float, StdGen)
+          (dy, _) = randomR (0.1, 1.0) g :: (Float, StdGen)
 
 updateParticle :: Particle -> Particle
 updateParticle (Particle x y dx dy pix) = Particle (x + dx') (y + dy') dx' dy' pix
